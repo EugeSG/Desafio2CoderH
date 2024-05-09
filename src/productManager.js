@@ -1,21 +1,18 @@
 import * as fs from 'fs';
 
 // Falta GET id, and modifiy
- export class ProductManager {
+
+export class ProductManager {
     constructor(path) {
         this.path = path;
     }
 
-    //Handle errors 
-    #errors = false;
-
-    //Generate ID
+    //Generate ID -- It should be different
     #getMaxId(array) {
-        let maxId = 0;
-        array.map((prod) => {
-            if (prod.id > maxId) maxId = prod.id;
-        });
-        return ++maxId;
+        if (array[array.length - 1].id) {
+            return array[array.length - 1].id + 1;
+        }
+        return 1
     }
 
 
@@ -77,10 +74,47 @@ import * as fs from 'fs';
     async getProducById(idProduct) {
         //Get products
         const productsFile = await this.getProducts();
+        // Find id
         for (const prod of productsFile) {
             if (prod.id == idProduct) return prod;
         }
-        return "Error: No found";
+        return "Error: Not found";
+    }
+
+    async updateProduct(obj, id) {
+        try {
+            if(!id) return "Faltan parámetros";
+            let productExist = await this.getProducById(id);
+            if (productExist == "Error: Not found") return productExist;
+            else {
+                const productsFile = await this.getProducts();
+                productExist = { ...productExist, ...obj };
+                let index = productsFile.findIndex((element) => element.id == id);
+                const newArray = productsFile.filter((u) => u.id !== id);
+                newArray.splice(index, 0, productExist);
+                await fs.promises.writeFile(this.path, JSON.stringify(newArray));
+                return productExist;
+            }
+
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    async deleteProduct(id) {
+        try {
+            const productExist = await this.getUserById(id);
+            if (!productExist) return 'Error: Not found';
+            const productsFile = await this.getProducts();
+            if (productsFile.length > 0) {
+                const newArray = productsFile.filter((u) => u.id !== id);
+                await fs.promises.writeFile(this.path, JSON.stringify(newArray));
+                return productExist;
+            } else return 'Error: The file is empty';
+        } catch (error) {
+            console.log(error);
+        }
     }
 }
+
 
